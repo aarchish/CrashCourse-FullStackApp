@@ -19,6 +19,7 @@ body {
   background-color: #44403c;
   margin-bottom: 40px;
   padding: 16px 40px;
+  text-align: center;
 }
 
 h1 {
@@ -40,6 +41,9 @@ h1 {
   font-size: 14px;
   text-transform: uppercase;
   font-family: "Coiny", sans-serif;
+  padding-top: 3px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 ul {

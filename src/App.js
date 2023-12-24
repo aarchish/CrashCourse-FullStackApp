@@ -1,15 +1,5 @@
+import { useState } from "react";
 import "./style.css";
-
-const GENRES = [
-  { name: "technology", color: "#3b82f6" },
-  { name: "science", color: "#16a34a" },
-  { name: "finance", color: "#ef4444" },
-  { name: "society", color: "#eab308" },
-  { name: "entertainment", color: "#db2777" },
-  { name: "health", color: "#14b8a6" },
-  { name: "history", color: "#f97316" },
-  { name: "news", color: "#8b5cf6" },
-];
 
 const initialFacts = [
   {
@@ -46,22 +36,15 @@ const initialFacts = [
 ];
 
 function App() {
+  // 1. define STATE variable
+  const [showForm, setShowForm] = useState(false);
+
   return (
     <>
-      {/* HEADER Component */}
-      <header className="header">
-        <div className="logo">
-          <img
-            src=".\logo.png"
-            height="68"
-            width="68"
-            alt="Today I Learned Logo"
-          />
-          <h1>Today I Learned</h1>
-        </div>
-        <button className="btn btn-large btn-open">Share a Fact</button>
-      </header>
-      <NewFactForm />
+      <Header showForm={showForm} setShowForm={setShowForm} />
+
+      {/* 2. render STATE variable */}
+      {showForm ? <NewFactForm /> : null}
 
       <main className="main">
         <GenreFilter />
@@ -71,12 +54,88 @@ function App() {
   );
 }
 
+function Header({ showForm, setShowForm }) {
+  return (
+    <header className="header">
+      <div className="logo">
+        <img
+          src=".\logo.png"
+          height="68"
+          width="68"
+          alt="Today I Learned Logo"
+        />
+        <h1>Today I Learned</h1>
+      </div>
+      <button
+        className="btn btn-large btn-open"
+        // 3. update STATE variable
+        onClick={() => setShowForm((show) => !show)}
+      >
+        {showForm ? "Close" : "Share a Fact"}
+      </button>
+    </header>
+  );
+}
+
+const GENRES = [
+  { name: "technology", color: "#3b82f6" },
+  { name: "science", color: "#16a34a" },
+  { name: "finance", color: "#ef4444" },
+  { name: "society", color: "#eab308" },
+  { name: "entertainment", color: "#db2777" },
+  { name: "health", color: "#14b8a6" },
+  { name: "history", color: "#f97316" },
+  { name: "news", color: "#8b5cf6" },
+];
+
 function NewFactForm() {
-  return <form className="fact-form">Fact Form!</form>;
+  const [text, setText] = useState("");
+  const [source, setSource] = useState("");
+  const [genre, setGenre] = useState("");
+
+  return (
+    <form className="fact-form">
+      <input
+        type="text"
+        placeholder="Share a fact with the World....."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <span>200</span>
+      <input type="text" placeholder="Trustworth Source......" />
+      <select>
+        <option value="">Choose Category</option>
+        {GENRES.map((genre) => (
+          <option key={genre.name} value={genre.name}>
+            {genre.name.toUpperCase()}
+          </option>
+        ))}
+      </select>
+      <button className="btn btn-large">Post</button>
+    </form>
+  );
 }
 
 function GenreFilter() {
-  return <aside>GenreFilter</aside>;
+  return (
+    <aside>
+      <ul>
+        <li className="genre">
+          <button className="btn btn-all-genre">All</button>
+        </li>
+        {GENRES.map((genre) => (
+          <li key={genre.name} className="genre">
+            <button
+              className="btn btn-genre"
+              style={{ backgroundColor: genre.color }}
+            >
+              {genre.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
 }
 
 function FactList() {

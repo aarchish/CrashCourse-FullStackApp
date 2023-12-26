@@ -39,6 +39,8 @@ function App() {
   // 1. define STATE variable
   const [showForm, setShowForm] = useState(false);
   const { facts, setFacts } = useState(initialFacts);
+  console.log("Initial showForm State", showForm);
+  console.log("Initial Facts State", facts);
 
   return (
     <>
@@ -152,7 +154,7 @@ function NewFactForm({ setFacts, setShowForm }) {
         value={source}
         onChange={(e) => setSource(e.target.value)}
       />
-      <select value={genre} onChange={(e) => setSource(e.target.value)}>
+      <select value={genre} onChange={(e) => setGenre(e.target.value)}>
         <option value="">Choose Category</option>
         {GENRES.map((genre) => (
           <option key={genre.name} value={genre.name}>
@@ -187,7 +189,8 @@ function GenreFilter() {
   );
 }
 
-function FactList({ facts }) {
+function FactList({ facts, setFacts }) {
+  console.log(facts);
   return (
     <section>
       <ul className="facts-list">
@@ -195,6 +198,7 @@ function FactList({ facts }) {
           <Fact key={fact.id} fact={fact} />
         ))}
       </ul>
+      <p>There are {facts.length} facts in the database. Add your own!</p>
     </section>
   );
 }

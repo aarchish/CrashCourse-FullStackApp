@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import supabase from "./supabase";
 import "./style.css";
+import { func } from "prop-types";
 
 const initialFacts = [
   {
@@ -41,22 +42,28 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [facts, setFacts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentGenre, setCurrentGenre] = useState("all");
 
-  useEffect(function () {
-    async function getFacts() {
-      setIsLoading(true);
-      const { data: facts, error } = await supabase
-        .from("facts")
-        .select("*")
-        .order("vote_interesting", { ascending: false })
-        .limit(1000);
+  useEffect(
+    function () {
+      async function getFacts() {
+        setIsLoading(true);
 
-      if (!error) setFacts(facts);
-      else alert("There was a problem fetching the data");
-      setIsLoading(false);
-    }
-    getFacts();
-  }, []);
+        let query = supabase.from("facts").select("*");
+        if (currentGenre !== "all") query.eq("genre", currentGenre);
+
+        const { data: facts, error } = await query
+          .order("vote_interesting", { ascending: false })
+          .limit(1000);
+
+        if (!error) setFacts(facts);
+        else alert("There was a problem fetching the data");
+        setIsLoading(false);
+      }
+      getFacts();
+    },
+    [currentGenre]
+  );
 
   return (
     <>
@@ -68,15 +75,19 @@ function App() {
       ) : null}
 
       <main className="main">
-        <GenreFilter />
-        {isLoading ? <Loader /> : <FactList facts={facts} />}
+        <GenreFilter setCurrentGenre={setCurrentGenre} />
+        {isLoading ? (
+          <Loader />
+        ) : (
+          <FactList facts={facts} setFacts={setFacts} />
+        )}
       </main>
     </>
   );
 }
 
 function Loader() {
-  return <p className="loading-message">Loading......</p>;
+  return <p className="message">Loading......</p>;
 }
 
 function Header({ showForm, setShowForm }) {
@@ -127,27 +138,38 @@ function isValidHttpUrl(string) {
 
 function NewFactForm({ setFacts, setShowForm }) {
   const [text, setText] = useState("");
-  const [source, setSource] = useState("http://example.com");
+  const [source, setSource] = useState("");
   const [genre, setGenre] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const textLength = text.length;
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (text && isValidHttpUrl(source) && genre && textLength <= 200) {
       // 3. Create a new fact object
-      const newFact = {
-        id: Math.round(Math.random() * 10000000),
-        text,
-        source,
-        genre,
-        votesInteresting: 0,
-        votesMindblowing: 0,
-        votesFalse: 0,
-        createdIn: new Date().getFullYear(),
-      };
+      // const newFact = {
+      //   id: Math.round(Math.random() * 10000000),
+      //   text,
+      //   source,
+      //   genre,
+      //   votesInteresting: 0,
+      //   votesMindblowing: 0,
+      //   votesFalse: 0,
+      //   createdIn: new Date().getFullYear(),
+      // };
+
+      // 3. Upload new fact to Supabase and recieve the new fact object
+      setIsUploading(true);
+
+      const { data: newFact, error } = await supabase
+        .from("facts")
+        .insert([{ text, source, genre }])
+        .select();
+
+      setIsUploading(false);
 
       // 4. Add the new fact to the UI: add the fact to the state
-      setFacts((facts) => [newFact, ...facts]);
+      if (!error) setFacts((facts) => [newFact[0], ...facts]);
 
       // 5. reset the input fields to empty
       setText("");
@@ -166,15 +188,21 @@ function NewFactForm({ setFacts, setShowForm }) {
         placeholder="Share a fact with the World....."
         value={text}
         onChange={(e) => setText(e.target.value)}
+        disabled={isUploading}
       />
       <span>{200 - textLength}</span>
       <input
         type="text"
-        placeholder="Trustworth Source......"
+        placeholder="Trustworth Source...... (http://example.com)"
         value={source}
         onChange={(e) => setSource(e.target.value)}
+        disabled={isUploading}
       />
-      <select value={genre} onChange={(e) => setGenre(e.target.value)}>
+      <select
+        value={genre}
+        onChange={(e) => setGenre(e.target.value)}
+        disabled={isUploading}
+      >
         <option value="">Choose Category</option>
         {GENRES.map((genre) => (
           <option key={genre.name} value={genre.name}>
@@ -182,23 +210,31 @@ function NewFactForm({ setFacts, setShowForm }) {
           </option>
         ))}
       </select>
-      <button className="btn btn-large">Post</button>
+      <button className="btn btn-large" disabled={isUploading}>
+        Post
+      </button>
     </form>
   );
 }
 
-function GenreFilter() {
+function GenreFilter({ setCurrentGenre }) {
   return (
     <aside>
       <ul>
         <li className="genre">
-          <button className="btn btn-all-genre">All</button>
+          <button
+            className="btn btn-all-genre"
+            onClick={() => setCurrentGenre("all")}
+          >
+            All
+          </button>
         </li>
         {GENRES.map((genre) => (
           <li key={genre.name} className="genre">
             <button
               className="btn btn-genre"
               style={{ backgroundColor: genre.color }}
+              onClick={() => setCurrentGenre(genre.name)}
             >
               {genre.name}
             </button>
@@ -210,11 +246,18 @@ function GenreFilter() {
 }
 
 function FactList({ facts, setFacts }) {
+  if (facts.length === 0) {
+    return (
+      <p className="message">
+        No facts for this genre yet, create your first one !!
+      </p>
+    );
+  }
   return (
     <section>
       <ul className="facts-list">
         {facts.map((fact) => (
-          <Fact key={fact.id} fact={fact} />
+          <Fact key={fact.id} fact={fact} setFacts={setFacts} />
         ))}
       </ul>
       <p>There are {facts.length} facts in the database. Add your own!</p>
@@ -222,10 +265,29 @@ function FactList({ facts, setFacts }) {
   );
 }
 
-function Fact({ fact }) {
+function Fact({ fact, setFacts }) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const isDisputed =
+    fact.vote_interesting + fact.vote_mindblowing < fact.vote_false;
+
+  async function handleVote(vote_name) {
+    setIsUpdating(true);
+    const { data: updatedFact, error } = await supabase
+      .from("facts")
+      .update({ [vote_name]: fact[vote_name] + 1 })
+      .eq("id", fact.id)
+      .select();
+
+    setIsUpdating(false);
+    if (!error)
+      setFacts((facts) =>
+        facts.map((f) => (f.id === fact.id ? updatedFact[0] : f))
+      );
+  }
   return (
     <li className="fact">
       <p>
+        {isDisputed ? <span className="disputed">[DISPUTED!!]</span> : null}
         {fact.text}
         <a className="source" href={fact.source} target="_blank">
           (Source)
@@ -241,9 +303,18 @@ function Fact({ fact }) {
         {fact.genre}
       </span>
       <div className="vote-buttons">
-        <button>👍 {fact.votesInteresting}</button>
-        <button>🤯 {fact.votesMindblowing}</button>
-        <button>⛔️ {fact.votesFalse}</button>
+        <button
+          onClick={() => handleVote("vote_interesting")}
+          disabled={isUpdating}
+        >
+          👍 {fact.vote_interesting}
+        </button>
+        <button onClick={() => handleVote("vote_mindblowing")}>
+          🤯 {fact.vote_mindblowing}
+        </button>
+        <button onClick={() => handleVote("vote_false")}>
+          ⛔️ {fact.vote_false}
+        </button>
       </div>
     </li>
   );
